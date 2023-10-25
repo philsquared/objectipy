@@ -1,0 +1,21 @@
+from typing import Any
+
+
+class secret:
+    def __init__(self, secret_str: str = None):
+        self._secret_str = secret_str
+
+    def __eq__(self, other: Any) -> bool:
+        return isinstance(other, self.__class__) and self._secret_str == other._secret_str
+
+    def __str__(self) -> str:
+        return '**********' if self._secret_str else ''
+
+    def __hash__(self) -> int:
+        return hash(self._secret_str)
+
+    def __repr__(self) -> str:
+        return f"secret('{self}')"
+
+    def __len__(self) -> int:
+        return len(self._secret_str)
