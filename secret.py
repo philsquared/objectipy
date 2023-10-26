@@ -1,7 +1,7 @@
 from typing import Any
 
 
-class secret:
+class Secret:
     def __init__(self, secret_str: str = None):
         self._secret_str = secret_str
 
