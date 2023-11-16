@@ -16,12 +16,11 @@ class Binding:
         return self.default_value is not None or is_optional(self.type_hint)
 
 
-def dict_to_object(data: dict, cls: type):
+def dict_to_object(data: dict, cls: type, allow_extra_data=False):
     try:
         mapping = cls._field_map() # !TBD check that it's a dict of strings
     except:
         mapping = {}
-        pass
 
     def map_field_name(name: str) -> str:
         return mapping.get(name) or name
@@ -37,6 +36,7 @@ def dict_to_object(data: dict, cls: type):
             if type_hint:
                 bindings[name] = Binding(name, type_hint, value)
 
+    dict_fields = set(data.keys())
     for binding in bindings.values():
         obj_field_name = binding.name
         dict_name = map_field_name(obj_field_name)
@@ -51,6 +51,7 @@ def dict_to_object(data: dict, cls: type):
                 data[dict_name] = obj
             else:
                 raise Exception(f"field '{dict_name}' expected type: {binding.type_hint} but found {type(value)}")
+            dict_fields.remove(dict_name)
         else:
             if binding.is_optional:
                 data[dict_name] = binding.default_value
@@ -60,4 +61,17 @@ def dict_to_object(data: dict, cls: type):
             data[obj_field_name] = data[dict_name]
             del data[dict_name]
 
+    # Check if there are any outstanding fields
+    if len(dict_fields) > 0:
+        if allow_extra_data:
+            this_data = {}
+            extra_data = {}
+            for k, v in data.items():
+                if k in dict_fields:
+                    extra_data[k] = v
+                else:
+                    this_data[k] = v
+            for k in this_data.keys():
+                del data[k]
+            return cls(**this_data)
     return cls(**data)
