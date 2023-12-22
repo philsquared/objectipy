@@ -1,8 +1,8 @@
 from dataclasses import fields, dataclass
 from typing import get_type_hints, Any
 
-from objectipy.secret import Secret
-from objectipy.utils import is_optional, is_convertible
+from secret import Secret
+from utils import is_optional, is_convertible
 
 
 @dataclass

@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Optional, Union, Annotated, get_type_hints, List
 
-from objectipy.objectipy import is_convertible, is_optional
+from objectipy import is_convertible, is_optional
 
 @dataclasses.dataclass
 class ClassWithList:
