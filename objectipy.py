@@ -1,8 +1,12 @@
 from dataclasses import fields, dataclass
 from typing import get_type_hints, Any
 
-from secret import Secret
-from utils import is_optional, is_convertible
+try:
+    from .secret import Secret
+    from .utils import is_optional, is_convertible
+except:
+    from secret import Secret
+    from utils import is_optional, is_convertible
 
 
 @dataclass
