@@ -1,4 +1,6 @@
-from dataclasses import fields, dataclass
+import inspect
+import typing
+from dataclasses import fields, dataclass, field
 from typing import get_type_hints, Any
 
 try:
@@ -20,6 +22,13 @@ class Binding:
         return self.default_value is not None or is_optional(self.type_hint)
 
 
+def make_binding(name: str, type_hint: type, default_value: Any) -> Binding:
+    if default_value is None:
+        origin_type = typing.get_origin(type_hint)
+        if inspect.isclass(origin_type) and issubclass(origin_type, typing.List):
+            default_value = []
+    return Binding(name, type_hint, default_value)
+
 def dict_to_object(data: dict, cls: type, allow_extra_data=False):
     try:
         mapping = cls._field_map() # !TBD check that it's a dict of strings
@@ -30,15 +39,15 @@ def dict_to_object(data: dict, cls: type, allow_extra_data=False):
         return mapping.get(name) or name
 
     # Get all standard fields (non defaulted)
-    bindings = {field.name: Binding(field.name, field.type, None) for field in fields(cls)}
+    bindings = {field.name: make_binding(field.name, field.type, None) for field in fields(cls)}
     hints = get_type_hints(cls)
 
     # Get fields with default values and mix in any type hints
-    for name, value in cls.__dict__.items():
-        if not name.startswith("__"):
-            type_hint = hints.get(name)
-            if type_hint:
-                bindings[name] = Binding(name, type_hint, value)
+    cls_fields = [(name, value) for name, value in cls.__dict__.items() if not name.startswith("__")]
+    for name, value in cls_fields:
+        type_hint = hints.get(name)
+        if type_hint:
+            bindings[name] = make_binding(name, type_hint, value)
 
     dict_fields = set(data.keys())
     for binding in bindings.values():
