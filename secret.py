@@ -3,11 +3,13 @@ from typing import Any
 
 class Secret:
     def __init__(self, secret_str: str = None):
-        self._secret_str = secret_str
+        if isinstance(secret_str, Secret):
+            self._secret_str = secret_str._secret_str
+        else:
+            self._secret_str = secret_str
 
     def get_secret_string(self) -> str:
         return self._secret_str
-
 
     def __eq__(self, other: Any) -> bool:
         return ((isinstance(other, str) and self._secret_str == other) or
@@ -23,4 +25,7 @@ class Secret:
         return f"secret('{self}')"
 
     def __len__(self) -> int:
-        return len(self._secret_str)
+        if self._secret_str:
+            return len(self._secret_str)
+        else:
+            return 0
