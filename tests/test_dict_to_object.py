@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from objectipy import dict_to_object
+from objectipy.objectipy import dict_to_object
 
 
 @dataclass

@@ -1,6 +1,6 @@
 import inspect
 import typing
-from dataclasses import fields, dataclass, field
+from dataclasses import fields, dataclass, field, asdict
 from typing import get_type_hints, Any
 
 try:
@@ -22,14 +22,18 @@ class Binding:
         return self.default_value is not None or is_optional(self.type_hint)
 
 
-def make_binding(name: str, type_hint: type, default_value: Any) -> Binding:
+def _make_binding(name: str, type_hint: type, default_value: Any) -> Binding:
     if default_value is None:
         origin_type = typing.get_origin(type_hint)
         if inspect.isclass(origin_type) and issubclass(origin_type, typing.List):
             default_value = []
     return Binding(name, type_hint, default_value)
 
+
 def dict_to_object(data: dict, cls: type, allow_extra_data=False):
+    """
+    Deserialise a dictionary into an object's fields
+    """
     try:
         mapping = cls._field_map() # !TBD check that it's a dict of strings
     except:
@@ -39,7 +43,7 @@ def dict_to_object(data: dict, cls: type, allow_extra_data=False):
         return mapping.get(name) or name
 
     # Get all standard fields (non defaulted)
-    bindings = {field.name: make_binding(field.name, field.type, None) for field in fields(cls)}
+    bindings = {field.name: _make_binding(field.name, field.type, None) for field in fields(cls)}
     hints = get_type_hints(cls)
 
     # Get fields with default values and mix in any type hints
@@ -47,7 +51,7 @@ def dict_to_object(data: dict, cls: type, allow_extra_data=False):
     for name, value in cls_fields:
         type_hint = hints.get(name)
         if type_hint:
-            bindings[name] = make_binding(name, type_hint, value)
+            bindings[name] = _make_binding(name, type_hint, value)
 
     dict_fields = set(data.keys())
     for binding in bindings.values():
@@ -88,3 +92,31 @@ def dict_to_object(data: dict, cls: type, allow_extra_data=False):
                 del data[k]
             return cls(**this_data)
     return cls(**data)
+
+
+def object_to_dict(obj, include: list | set | None=None, exclude: list | set | None=None, exclude_none=True):
+    """
+    Serialise object's fields to a dictionary
+
+    If include is set then only fields with names in the include list are included (unless also excluded)
+    If exclude is set then fields with names in the exclude list are excluded (even if in the include list)
+    If exclude_none is True then fields with a value of None or excluded
+    """
+    if include:
+        include_predicate = lambda x: x[0] in include
+    else:
+        include_predicate = lambda _: True
+    if exclude_none:
+        if exclude:
+            exclude_predicate = lambda x: x[1] is None or x[0] in exclude
+        else:
+            exclude_predicate = lambda x: x[1] is None
+    else:
+        if exclude:
+            exclude_predicate = lambda x: x[0] in exclude
+        else:
+            exclude_predicate = lambda _: False
+
+    def filter_factory(data: list):
+        return dict(x for x in data if not exclude_predicate(x) and include_predicate(x))
+    return asdict(obj, dict_factory=filter_factory)
